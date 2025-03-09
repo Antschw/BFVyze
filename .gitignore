@@ -1,0 +1,39 @@
+# Ignore build directories
+/build/
+/cmake-build-debug/
+/cmake-build-release/
+/out/
+
+# Ignore generated CMake files
+CMakeCache.txt
+CMakeFiles/
+Testing/
+Makefile
+cmake_install.cmake
+CTestTestfile.cmake
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# Ignore CLion-specific files
+.idea/
+*.iml
+
+# Ignore compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.o
+*.obj
+
+# Ignore vcpkg-generated files (do not commit vcpkg installation)
+vcpkg_installed/
+vcpkg/buildtrees/
+vcpkg/packages/
