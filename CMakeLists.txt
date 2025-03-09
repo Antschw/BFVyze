@@ -27,6 +27,9 @@ add_executable(overlayBFV
         src/main.cpp
         src/OverlayWindow.cpp
         src/IPCClient.cpp
+        include/HotkeyManager.h
+        src/HotkeyManager.cpp
+        include/Constants.h
 )
 
 # Include directories for headers
