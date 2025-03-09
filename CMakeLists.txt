@@ -35,6 +35,8 @@ add_executable(overlayBFV
         include/screenshot/ScreenCapturer.h
         src/screenshot/ImageProcessor.cpp
         include/screenshot/ImageProcessor.h
+        src/screenshot/ImageSaver.cpp
+        include/screenshot/ImageSaver.h
 )
 
 # Include directories for headers
