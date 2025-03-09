@@ -31,6 +31,8 @@ add_executable(overlayBFV
         src/input/HotkeyManager.cpp
         include/core/Constants.h
         include/overlay/OverlayWindow.h
+        src/screenshot/ImageProcessor.cpp
+        include/screenshot/ImageProcessor.h
 )
 
 # Include directories for headers
