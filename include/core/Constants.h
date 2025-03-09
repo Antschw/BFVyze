@@ -14,4 +14,10 @@ constexpr int HOTKEY_DEBOUNCE_DELAY = 300;
 /// @brief Polling interval for key detection (milliseconds)
 constexpr int HOTKEY_POLL_INTERVAL = 50;
 
+/// @brief BMP bit depth for grayscale conversion
+constexpr int GRAYSCALE_BIT_DEPTH = 8;
+
+/// @brief BMP file type identifier
+constexpr int BMP_HEADER_TYPE = 0x4D42;
+
 #endif // CONSTANTS_H

@@ -1,16 +1,11 @@
-//
-// Created by Antoine on 08/03/2025.
-//
-
 #ifndef OVERLAYWINDOW_H
 #define OVERLAYWINDOW_H
 
 
+namespace overlay {
+    class OverlayWindow {
 
-class OverlayWindow {
-
-};
-
-
+    };
+}
 
 #endif //OVERLAYWINDOW_H

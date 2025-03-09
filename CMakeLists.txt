@@ -25,11 +25,12 @@ find_package(imgui REQUIRED CONFIG)
 # Define the executable target
 add_executable(overlayBFV
         src/main.cpp
-        src/OverlayWindow.cpp
-        src/IPCClient.cpp
-        include/HotkeyManager.h
-        src/HotkeyManager.cpp
-        include/Constants.h
+        src/overlay/OverlayWindow.cpp
+        src/input/IPCClient.cpp
+        include/input/HotkeyManager.h
+        src/input/HotkeyManager.cpp
+        include/core/Constants.h
+        include/overlay/OverlayWindow.h
 )
 
 # Include directories for headers
