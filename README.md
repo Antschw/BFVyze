@@ -1,24 +1,28 @@
-# overlayBFV
+# BFVyze
 
 ## Overview
-overlayBFV is a real-time overlay for Battlefield V, designed to analyze players on a server and display relevant statistics. The project is structured to be modular and extensible, focusing on safety and compliance with anti-cheat mechanisms.
+BFVyze is a real-time overlay for Battlefield V, designed to analyze players on a server and display relevant statistics. The project is structured to be modular and extensible, focusing on safety and compliance with anti-cheat mechanisms.
 
 ## Features
 ### Implemented
 - Basic project structure setup
 - CMake configuration with vcpkg integration
-- Initial ImGui window for overlay display
 
-### In Development
-- Player analysis system to retrieve and evaluate server statistics
-- Display real-time player statistics (K/D, KPM, accuracy)
-- Identify high K/D players for awareness
+### In Development (first phase) - In game cheater detection
+- OCR for identifying server id
+- Shortcut manager
+- Retrieve data from bfvhacker API and Gametool API
+- Initial ImGui window for overlay display
 - Communication between overlay (C++) and backend (Python) using ZeroMQ
+  
+### Planned features
+- Display real-time player statistics (K/D, KPM, accuracy) during game session
+- Identify high K/D, kpm players for awareness and players with a lot of hours
+- Identify all the servers with cheater in the search server HUD
 
 ## Project Structure
 ```
-overlayBFV/
-│── cmake/               # Additional CMake configurations (if needed)
+BFVyze/
 │── cmake-build-debug/   # Auto-generated build files (excluded from Git)
 │── src/                 # C++ source files
 │   ├── IPCClient.cpp
@@ -52,7 +56,7 @@ Install required libraries:
 ```powershell
 vcpkg install fmt:x64-mingw-static spdlog:x64-mingw-static imgui:x64-mingw-static
 ```
-Set `VCPKG_ROOT` environment variable:
+Set `VCPKG_ROOT` environment variable (Windows only):
 ```powershell
 [System.Environment]::SetEnvironmentVariable("VCPKG_ROOT", "C:\\path\\to\\vcpkg", "User")
 ```
@@ -69,7 +73,7 @@ cmake --build cmake-build-debug
 
 ### Run the Overlay
 ```powershell
-.\cmake-build-debug\overlayBFV.exe
+.\cmake-build-debug\BFVyze.exe
 ```
 
 ## License
