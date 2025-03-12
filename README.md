@@ -23,18 +23,58 @@ BFVyze is a real-time overlay for Battlefield V, designed to analyze players on 
 ## Project Structure
 ```
 BFVyze/
-│── cmake-build-debug/   # Auto-generated build files (excluded from Git)
-│── src/                 # C++ source files
-│   ├── IPCClient.cpp
-│   ├── OverlayWindow.cpp
-│   ├── main.cpp
-│── include/             # Header files
-│   ├── IPCClient.h
-│   ├── OverlayWindow.h
-│── .gitignore           # Git ignore rules
-│── CMakeLists.txt       # CMake build configuration
-│── CMakePresets.json    # CMake presets for portability
-│── README.md            # Project documentation
+├── .venv/                       # Local Python virtual environment (ignored by Git)
+├── cmake-build-debug/           # Out-of-source build directory (ignored by Git)
+├── include/                     # C++ header files
+│   ├── core/
+│   │   └── Constants.h
+│   ├── ipc/
+│   │   ├── IPCManager.h
+│   │   ├── ZMQClient.h
+│   │   ├── ZMQMessageFormatter.h
+│   │   └── ZMQMessageParser.h
+│   ├── input/
+│   │   └── HotkeyManager.h
+│   ├── overlay/
+│   │   └── OverlayWindow.h
+│   └── screenshot/
+│       ├── ScreenshotCapturer.h
+│       ├── ScreenshotOrchestrator.h
+│       ├── ScreenshotProcessor.h
+│       └── ScreenshotSaver.h
+├── python/                      # Python backend
+│   ├── main.py                  # Entry point for the Python application
+│   ├── setup.py                 # Python package configuration
+│   ├── requirements.txt         # Python dependencies
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── cheater_count_fetcher.py
+│   │   └── server_id_resolver.py
+│   ├── ocr/
+│   │   ├── __init__.py
+│   │   └── ocr_processor.py
+│   └── zmq_comm/
+│       ├── __init__.py
+│       └── screenshot_receiver.py
+├── src/                         # C++ source files
+│   ├── main.cpp                 # Entry point for the C++ application
+│   ├── input/
+│   │   └── HotkeyManager.cpp
+│   ├── ipc/
+│   │   ├── IPCManager.cpp
+│   │   ├── ZMQClient.cpp
+│   │   ├── ZMQMessageFormatter.cpp
+│   │   └── ZMQMessageParser.cpp
+│   ├── overlay/
+│   │   └── OverlayWindow.cpp
+│   └── screenshot/
+│       ├── ScreenshotCapturer.cpp
+│       ├── ScreenshotOrchestrator.cpp
+│       ├── ScreenshotProcessor.cpp
+│       └── ScreenshotSaver.cpp
+├── CMakeLists.txt               # Main CMake configuration
+├── CMakePresets.json            # CMake presets for reproducible builds
+└── README.md                    # Project documentation
 ```
 
 ## Build Instructions
@@ -74,6 +114,12 @@ cmake --build cmake-build-debug
 ### Run the Overlay
 ```powershell
 .\cmake-build-debug\BFVyze.exe
+```
+
+### Run the Python Backend
+```powershell
+cd python
+python main.py
 ```
 
 ## License
