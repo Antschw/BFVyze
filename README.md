@@ -7,13 +7,13 @@ BFVyze is a real-time overlay for Battlefield V, designed to analyze players on 
 ### Implemented
 - Basic project structure setup
 - CMake configuration with vcpkg integration
-
-### In Development (first phase) - In game cheater detection
 - OCR for identifying server id
 - Shortcut manager
 - Retrieve data from bfvhacker API and Gametool API
-- Initial ImGui window for overlay display
 - Communication between overlay (C++) and backend (Python) using ZeroMQ
+
+### In Development (first phase) - In game cheater detection
+- Initial ImGui window for overlay display
   
 ### Planned features
 - Display real-time player statistics (K/D, KPM, accuracy) during game session
