@@ -1,12 +1,12 @@
-#include "screenshot/ScreenshotManager.h"
-#include "screenshot/ImageProcessor.h"
-#include "screenshot/ImageSaver.h"
-#include "screenshot/ScreenCapturer.h"
+#include "screenshot/ScreenshotOrchestrator.h"
+#include "screenshot/ScreenshotProcessor.h"
+#include "screenshot/ScreenshotSaver.h"
+#include "screenshot/ScreenshotCapturer.h"
 #include <spdlog/spdlog.h>
 #include <filesystem>
 
 namespace screenshot {
-    bool ScreenshotManager::captureAndSaveScreenshot(const std::string& filename) {
+    bool ScreenshotOrchestrator::captureAndSaveScreenshot(const std::string& filename) {
         spdlog::info("Starting full screenshot process...");
 
         if (filename.empty()) {
@@ -16,7 +16,7 @@ namespace screenshot {
 
         // Capture the screen
         spdlog::info("Filename received: {}", filename);
-        auto hBitmap = ScreenCapturer::captureScreen();
+        auto hBitmap = ScreenshotCapturer::captureScreen();
         if (!hBitmap) {
             spdlog::error("Screen capture failed.");
             return false;
@@ -26,8 +26,8 @@ namespace screenshot {
         int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
         // Convert to grayscale
-        ImageProcessor::BITMAPINFO256 bmpInfo256 = {};
-        std::vector<BYTE> grayData = ImageProcessor::convertToGrayscale(
+        ScreenshotProcessor::BITMAPINFO256 bmpInfo256 = {};
+        std::vector<BYTE> grayData = ScreenshotProcessor::convertToGrayscale(
             &*hBitmap, screenWidth, screenHeight, bmpInfo256);
 
         if (grayData.empty()) {
@@ -36,7 +36,7 @@ namespace screenshot {
         }
 
         // Save the file
-        if (!ImageSaver::saveBitmapToFile(filename, bmpInfo256, grayData)) {
+        if (!ScreenshotSaver::saveBitmapToFile(filename, bmpInfo256, grayData)) {
             spdlog::error("Saving screenshot to file failed.");
             return false;
         }

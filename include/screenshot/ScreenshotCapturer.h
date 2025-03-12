@@ -5,11 +5,11 @@
 #include <memory>
 
 /**
- * @class ScreenCapturer
+ * @class ScreenshotCapturer
  * @brief Handles screen capture and returns an HBITMAP.
  */
 namespace screenshot {
-    class ScreenCapturer {
+    class ScreenshotCapturer {
     public:
       /**
        * @brief Captures the entire screen and returns a managed bitmap handle.

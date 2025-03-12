@@ -27,18 +27,18 @@ add_executable(overlayBFV
         src/main.cpp
         src/overlay/OverlayWindow.cpp
         src/input/IPCClient.cpp
+        src/screenshot/ScreenshotCapturer.cpp
+        src/screenshot/ScreenshotOrchestrator.cpp
+        src/screenshot/ScreenshotProcessor.cpp
+        src/screenshot/ScreenshotSaver.cpp
         include/input/HotkeyManager.h
         src/input/HotkeyManager.cpp
         include/core/Constants.h
         include/overlay/OverlayWindow.h
-        src/screenshot/ScreenCapturer.cpp
-        include/screenshot/ScreenCapturer.h
-        src/screenshot/ImageProcessor.cpp
-        include/screenshot/ImageProcessor.h
-        src/screenshot/ImageSaver.cpp
-        include/screenshot/ImageSaver.h
-        src/screenshot/ScreenshotManager.cpp
-        include/screenshot/ScreenshotManager.h
+        include/screenshot/ScreenshotCapturer.h
+        include/screenshot/ScreenshotOrchestrator.h
+        include/screenshot/ScreenshotProcessor.h
+        include/screenshot/ScreenshotSaver.h
 )
 
 # Include directories for headers

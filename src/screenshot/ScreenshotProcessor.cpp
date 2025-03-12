@@ -1,9 +1,10 @@
-#include "screenshot/ImageProcessor.h"
-#include "core/Constants.h"
+#include "screenshot/ScreenshotProcessor.h"
+#include "core/Constants.h"  // Contient la définition de GRAYSCALE_BIT_DEPTH (généralement 8)
 #include <spdlog/spdlog.h>
 
 namespace screenshot {
-    std::vector<BYTE> ImageProcessor::convertToGrayscale(HBITMAP hBitmap, int width, int height, BITMAPINFO256 &bmpInfo256) {
+
+    std::vector<BYTE> ScreenshotProcessor::convertToGrayscale(HBITMAP hBitmap, int width, int height, BITMAPINFO256 &bmpInfo256) {
         spdlog::info("Starting grayscale conversion for an image of size {}x{}", width, height);
 
         bmpInfo256.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -43,9 +44,26 @@ namespace screenshot {
             return {};
         }
 
-        spdlog::info("GetDIBits executed successfully. Pixels extracted: {} (expected: {})",
+        spdlog::info("Grayscale conversion executed successfully. Pixels extracted: {} (expected: {})",
                      pixelData.size(), width * height * (GRAYSCALE_BIT_DEPTH / 8));
 
         return pixelData;
+    }
+
+    std::vector<BYTE> ScreenshotProcessor::convertToBlackAndWhite(HBITMAP hBitmap, int width, int height, BITMAPINFO256 &bmpInfo256, BYTE threshold) {
+        spdlog::info("Starting black and white conversion for an image of size {}x{}", width, height);
+        std::vector<BYTE> grayData = convertToGrayscale(hBitmap, width, height, bmpInfo256);
+
+        if (grayData.empty()) {
+            spdlog::error("Failed to retrieve grayscale data for black and white conversion.");
+            return {};
+        }
+
+        for (auto &pixel : grayData) {
+            pixel = (pixel >= threshold) ? 255 : 0;
+        }
+
+        spdlog::info("Black and white conversion completed. Total pixels processed: {}", grayData.size());
+        return grayData;
     }
 }

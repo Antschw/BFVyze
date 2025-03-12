@@ -1,8 +1,8 @@
-#include "screenshot/ScreenCapturer.h"
+#include "screenshot/ScreenshotCapturer.h"
 #include <spdlog/spdlog.h>
 
 namespace screenshot {
-    ScreenCapturer::HBitmapPtr ScreenCapturer::captureScreen() {
+    ScreenshotCapturer::HBitmapPtr ScreenshotCapturer::captureScreen() {
         int screenWidth = GetSystemMetrics(SM_CXSCREEN);
         int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
@@ -45,7 +45,7 @@ namespace screenshot {
         DeleteDC(hMemoryDC);
         ReleaseDC(nullptr, hScreenDC);
 
-        return HBitmapPtr(hBitmap, DeleteObject);
+        return {hBitmap, DeleteObject};
     }
 }
 

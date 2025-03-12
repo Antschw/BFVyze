@@ -4,11 +4,11 @@
 #include <string>
 
 /**
- * @class ScreenshotManager
+ * @class ScreenshotOrchestrator
  * @brief Manages the full screenshot process from capture to saving.
  */
 namespace screenshot {
-    class ScreenshotManager {
+    class ScreenshotOrchestrator {
     public:
         /**
          * @brief Captures and saves a screenshot to the specified file.
