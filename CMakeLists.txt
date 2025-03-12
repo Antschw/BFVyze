@@ -21,6 +21,7 @@ set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-mingw-static")
 find_package(fmt REQUIRED CONFIG)
 find_package(spdlog REQUIRED CONFIG)
 find_package(imgui REQUIRED CONFIG)
+find_package(cppzmq REQUIRED CONFIG)
 
 # Define the executable target
 add_executable(overlayBFV
@@ -35,6 +36,7 @@ add_executable(overlayBFV
         src/screenshot/ScreenshotOrchestrator.cpp
         src/screenshot/ScreenshotProcessor.cpp
         src/screenshot/ScreenshotSaver.cpp
+
         include/input/HotkeyManager.h
         include/core/Constants.h
         include/overlay/OverlayWindow.h
@@ -55,4 +57,5 @@ target_include_directories(overlayBFV PRIVATE include)
 target_link_libraries(overlayBFV PRIVATE
         spdlog::spdlog
         imgui::imgui
+        cppzmq
 )
