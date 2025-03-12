@@ -21,12 +21,33 @@ set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-mingw-static")
 find_package(fmt REQUIRED CONFIG)
 find_package(spdlog REQUIRED CONFIG)
 find_package(imgui REQUIRED CONFIG)
+find_package(cppzmq REQUIRED CONFIG)
 
 # Define the executable target
 add_executable(overlayBFV
         src/main.cpp
-        src/OverlayWindow.cpp
-        src/IPCClient.cpp
+        src/overlay/OverlayWindow.cpp
+        src/input/HotkeyManager.cpp
+        src/ipc/IPCManager.cpp
+        src/ipc/ZMQClient.cpp
+        src/ipc/ZMQMessageFormatter.cpp
+        src/ipc/ZMQMessageParser.cpp
+        src/screenshot/ScreenshotCapturer.cpp
+        src/screenshot/ScreenshotOrchestrator.cpp
+        src/screenshot/ScreenshotProcessor.cpp
+        src/screenshot/ScreenshotSaver.cpp
+
+        include/input/HotkeyManager.h
+        include/core/Constants.h
+        include/overlay/OverlayWindow.h
+        include/ipc/IPCManager.h
+        include/ipc/ZMQClient.h
+        include/ipc/ZMQMessageFormatter.h
+        include/ipc/ZMQMessageParser.h
+        include/screenshot/ScreenshotCapturer.h
+        include/screenshot/ScreenshotOrchestrator.h
+        include/screenshot/ScreenshotProcessor.h
+        include/screenshot/ScreenshotSaver.h
 )
 
 # Include directories for headers
@@ -36,4 +57,5 @@ target_include_directories(overlayBFV PRIVATE include)
 target_link_libraries(overlayBFV PRIVATE
         spdlog::spdlog
         imgui::imgui
+        cppzmq
 )
