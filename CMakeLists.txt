@@ -26,15 +26,22 @@ find_package(imgui REQUIRED CONFIG)
 add_executable(overlayBFV
         src/main.cpp
         src/overlay/OverlayWindow.cpp
-        src/input/IPCClient.cpp
+        src/input/HotkeyManager.cpp
+        src/ipc/IPCManager.cpp
+        src/ipc/ZMQClient.cpp
+        src/ipc/ZMQMessageFormatter.cpp
+        src/ipc/ZMQMessageParser.cpp
         src/screenshot/ScreenshotCapturer.cpp
         src/screenshot/ScreenshotOrchestrator.cpp
         src/screenshot/ScreenshotProcessor.cpp
         src/screenshot/ScreenshotSaver.cpp
         include/input/HotkeyManager.h
-        src/input/HotkeyManager.cpp
         include/core/Constants.h
         include/overlay/OverlayWindow.h
+        include/ipc/IPCManager.h
+        include/ipc/ZMQClient.h
+        include/ipc/ZMQMessageFormatter.h
+        include/ipc/ZMQMessageParser.h
         include/screenshot/ScreenshotCapturer.h
         include/screenshot/ScreenshotOrchestrator.h
         include/screenshot/ScreenshotProcessor.h
