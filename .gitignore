@@ -24,14 +24,12 @@ CTestTestfile.cmake
 *.iml
 
 # Ignore compiled binaries
-*.exe
-*.dll
 *.so
 *.dylib
-*.lib
 *.a
 *.o
 *.obj
+*.pyc
 
 # Ignore vcpkg-generated files (do not commit vcpkg installation)
 vcpkg_installed/
