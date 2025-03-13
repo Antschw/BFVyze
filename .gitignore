@@ -37,3 +37,5 @@ CTestTestfile.cmake
 vcpkg_installed/
 vcpkg/buildtrees/
 vcpkg/packages/
+/python/BFVyze_py.egg-info/
+/python/build/
