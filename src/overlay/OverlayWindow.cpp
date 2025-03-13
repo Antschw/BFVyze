@@ -161,8 +161,9 @@ namespace overlay {
         style.Colors[ImGuiCol_Text]     = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);  // white text for visibility
 
         // Load font(s) for ImGui (if the font file is available in working directory)
-        io.Fonts->AddFontFromFileTTF("fonts/Roboto-Regular.ttf", 10.0f);
-        io.FontDefault = io.Fonts->AddFontFromFileTTF("fonts/Roboto-Regular.ttf", 15.0f);
+        // Deactivate font to avoid having to ship a font file with the application
+        // io.Fonts->AddFontFromFileTTF("fonts/Roboto-Regular.ttf", 10.0f);
+        // io.FontDefault = io.Fonts->AddFontFromFileTTF("fonts/Roboto-Regular.ttf", 15.0f);
 
         // Initialize ImGui GLFW and OpenGL backends
         ImGui_ImplGlfw_InitForOpenGL(window_, true);

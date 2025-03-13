@@ -8,19 +8,45 @@
 #include <cstdlib>
 #include <chrono>
 #include <spdlog/spdlog.h>
+#include <windows.h>
+#include <shellapi.h>
 #include <zmq.hpp>
-#include <nlohmann/json.hpp> // Pour parser le JSON
+#include <string>
+#include <nlohmann/json.hpp>
+#include "global/GlobalState.h"
+#include <filesystem>
+
+std::atomic<bool> g_waitingForResponse{false};
+
 
 /**
  * @brief Lance le serveur backend Python dans une nouvelle fenêtre.
  */
 void launchPythonServer() {
-    spdlog::info("Launching Python backend server...");
-    int ret = std::system("start \"\" python.exe ../python/main.py");
-    if (ret != 0) {
-        spdlog::error("Failed to launch Python server (system call returned {}).", ret);
+    std::string pythonExe = "python-3.13.2-embed-amd64\\pythonw.exe";
+    std::string script    = "python-3.13.2-embed-amd64\\scripts\\main.py";
+
+    // Vérif: est-ce que pythonExe existe ?
+    if (!std::filesystem::exists(pythonExe)) {
+        spdlog::error("Python executable not found at: {}", pythonExe);
+        return;
+    }
+    if (!std::filesystem::exists(script)) {
+        spdlog::error("Python script not found at: {}", script);
+        return;
+    }
+
+    spdlog::info("Launching Python backend: {} {}", pythonExe, script);
+    HINSTANCE hRes = ShellExecuteA(NULL, "open", pythonExe.c_str(), script.c_str(), NULL, SW_HIDE);
+    intptr_t code = reinterpret_cast<intptr_t>(hRes);
+    if (code <= 32) {
+        spdlog::error("ShellExecute failed with code {}", code);
+    } else {
+        spdlog::info("ShellExecute success, Python backend should be starting.");
     }
 }
+
+
 
 /**
  * @brief Capture et envoie une capture d'écran via IPC.
@@ -28,6 +54,7 @@ void launchPythonServer() {
  */
 void captureAndSendScreenshot(ipc::IPCManager &ipcManager) {
     spdlog::info("Hotkey pressed: capturing screenshot...");
+    g_waitingForResponse.store(true);
     auto hBitmap = screenshot::ScreenshotCapturer::captureScreen();
     if (!hBitmap) {
         spdlog::error("Screen capture failed.");
@@ -39,6 +66,7 @@ void captureAndSendScreenshot(ipc::IPCManager &ipcManager) {
         spdlog::info("Screenshot sent successfully.");
     } else {
         spdlog::error("Screenshot sending failed.");
+        g_waitingForResponse.store(false);
     }
 }
 
@@ -48,27 +76,55 @@ void captureAndSendScreenshot(ipc::IPCManager &ipcManager) {
  * @param running Référence à la variable de contrôle de l'exécution.
  */
 void runCheaterListener(std::shared_ptr<core::CheaterCountManager> manager,
-                          std::atomic<bool>& running) {
+                        std::atomic<bool>& running)
+{
     zmq::context_t context(1);
     zmq::socket_t subscriber(context, zmq::socket_type::pull);
+
+    // On peut mettre un petit timeout pour pas bloquer trop longtemps
+    int shortTimeoutMs = 200;
+    subscriber.setsockopt(ZMQ_RCVTIMEO, &shortTimeoutMs, sizeof(shortTimeoutMs));
     subscriber.connect("tcp://localhost:5556");
     spdlog::info("ZeroMQ listener started on port 5556.");
 
     while (running.load()) {
         zmq::message_t message;
-        // Bloquant avec timeout ou attente active selon vos besoins
-        if (subscriber.recv(message, zmq::recv_flags::none)) {
-            try {
-                auto json_msg = nlohmann::json::parse(message.to_string());
+        if (!subscriber.recv(message, zmq::recv_flags::none)) {
+            // On n'a rien reçu dans le délai shortTimeoutMs
+            // => check si on attendait une réponse
+            if (g_waitingForResponse.load()) {
+                // On peut incrémenter un compteur de "combien de fois on n'a rien reçu"
+                // et au bout d'un certain temps, on loggue l'erreur
+                static int noResponseCounter = 0;
+                noResponseCounter++;
+                if (noResponseCounter > 10) { // par ex. 10 x 200ms = 2 secondes
+                    spdlog::warn("Timeout waiting for message from Python backend (2s).");
+                    g_waitingForResponse.store(false);
+                    noResponseCounter = 0;
+                }
+            }
+            continue;
+        }
+        // On a reçu quelque chose
+        g_waitingForResponse.store(false);
+        try {
+            auto json_msg = nlohmann::json::parse(message.to_string());
+            if (json_msg.contains("error")) {
+                std::string err = json_msg["error"].get<std::string>();
+                manager->setError(err);
+                spdlog::error("Received error from Python: {}", err);
+            } else if (json_msg.contains("cheater_count")) {
                 int count = json_msg["cheater_count"].get<int>();
                 manager->setCount(count);
                 spdlog::info("Received cheater count: {}", count);
-            } catch (const std::exception& e) {
-                spdlog::error("Error parsing cheater count JSON: {}", e.what());
             }
+        } catch (const std::exception& e) {
+            manager->setError(e.what());
+            spdlog::error("Error parsing cheater count JSON: {}", e.what());
         }
     }
 }
+
 
 /**
  * @brief Fonction qui exécute le pipeline de capture d'écran dans un thread.
@@ -80,7 +136,9 @@ void runScreenshotPipeline(std::atomic<bool>& running) {
     // On utilise la touche VK_ADD pour déclencher la capture d'écran
     input::HotkeyManager hotkeyManager(VK_ADD);
     hotkeyManager.start([&ipcManager]() {
+        GlobalState::pipelineActive.store(true);
         captureAndSendScreenshot(ipcManager);
+        GlobalState::pipelineActive.store(false);
     });
     spdlog::info("Screenshot capture pipeline started. Press ESC to stop this pipeline.");
     while (running.load()) {

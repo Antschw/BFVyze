@@ -2,6 +2,7 @@
 #include "imgui.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#include "global/GlobalState.h"
 
 namespace overlay {
 
@@ -88,6 +89,9 @@ namespace overlay {
             ImGui::BeginChild("TitleBarRegion", ImVec2(0, 30), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
             {
                 ImGui::TextUnformatted("BFVyze Overlay");
+                if (GlobalState::pipelineActive.load()) {
+                    ImGui::TextColored(ImVec4(0,1,0,1), "Pipeline running");
+                }
                 // Place control buttons on the same line, aligned to the right
                 ImGui::SameLine();
                 float buttonWidth = 60.0f;
@@ -128,10 +132,15 @@ namespace overlay {
             ImGui::Text("Press + to start the scan");
 
             int cheaterCount = cheaterManager_ ? cheaterManager_->getCount() : 0;
-            if (cheaterCount > 0) {
+            if (cheaterCount == -1) {
+            } else if (cheaterCount > 0) {
                 ImGui::TextColored(ImVec4(1, 0, 0, 1), "Detected cheaters: %d", cheaterCount);
             } else {
                 ImGui::Text("No cheaters detected.");
+            }
+            std::string error = cheaterManager_ ? cheaterManager_->getError() : "";
+            if (!GlobalState::errorMessage.empty()) {
+                ImGui::TextColored(ImVec4(1,1,0,1), "Error: %s", GlobalState::errorMessage.c_str());
             }
         }
         ImGui::End();
