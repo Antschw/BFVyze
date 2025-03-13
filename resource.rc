@@ -1,0 +1,4 @@
+// resource.rc
+#include <windows.h>
+
+IDI_APP_ICON ICON "bfvyze.ico"

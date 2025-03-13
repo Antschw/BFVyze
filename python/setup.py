@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="BFVyze_py",
     version="0.1.0",
-    description="Python backend for overlay BFV: OCR processing and ZeroMQ communication.",
+    description="Python backends for overlay BFV: OCR processing and ZeroMQ communication.",
     author="Antschw",
     author_email="antoine97410@hotmail.fr",
     url="https://github.com/Antschw/BFVyze",
