@@ -1,5 +1,6 @@
 #pragma once
 #include "overlay/OverlayWindow.h"
+#include "core/CheaterCountManager.h"
 #ifdef _WIN32
 #include <windows.h>   // For POINT, GetAsyncKeyState, etc.
 #endif
@@ -17,8 +18,9 @@ namespace overlay {
     public:
         /**
          * @brief Constructs an OverlayController.
+         * @param cheaterManager Shared pointer to the cheater count manager.
          */
-        OverlayController();
+        explicit OverlayController(std::shared_ptr<core::CheaterCountManager> cheaterManager);
 
         /**
          * @brief Runs the overlay's main loop.
@@ -40,7 +42,7 @@ namespace overlay {
         bool dragging_;          ///< True if the user is currently dragging the window via the title bar.
         POINT dragStartPos_{};     ///< Cursor position (screen coords) at the moment a drag started.
         int windowStartX_, windowStartY_;  ///< Window position at the start of a drag operation.
-
+        std::shared_ptr<core::CheaterCountManager> cheaterManager_; ///< Managing cheaters number.
         /**
          * @brief Renders the ImGui interface for one frame.
          *

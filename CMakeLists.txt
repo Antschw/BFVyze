@@ -25,6 +25,8 @@ find_package(cppzmq REQUIRED CONFIG)
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(glad REQUIRED CONFIG)
+find_package(nlohmann_json REQUIRED CONFIG)
+
 
 list(APPEND CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-mingw-static")
 list(APPEND CMAKE_LIBRARY_PATH "$ENV{VCPKG_ROOT}/installed/x64-mingw-static/lib")
@@ -71,6 +73,8 @@ add_executable(BFVyze
         third_party/imgui/imgui_widgets.cpp
         third_party/imgui/backends/imgui_impl_glfw.cpp
         third_party/imgui/backends/imgui_impl_opengl3.cpp
+        include/core/CheaterCountManager.h
+        src/core/CheaterCountManager.cpp
 )
 
 # Include directories for headers
@@ -84,6 +88,7 @@ target_link_libraries(BFVyze PRIVATE
         cppzmq
         glfw
         OpenGL::GL
+        nlohmann_json::nlohmann_json
         ${CMAKE_DL_LIBS}
 )
 

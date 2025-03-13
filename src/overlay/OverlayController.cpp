@@ -5,8 +5,8 @@
 
 namespace overlay {
 
-    OverlayController::OverlayController()
-        : visible_(true), dragging_(false), windowStartX_(0), windowStartY_(0) {
+    OverlayController::OverlayController(std::shared_ptr<core::CheaterCountManager> cheaterManager)
+        : visible_(true), dragging_(false), windowStartX_(0), windowStartY_(0), cheaterManager_(std::move(cheaterManager)) {
         dragStartPos_.x = dragStartPos_.y = 0;
     }
 
@@ -25,17 +25,26 @@ namespace overlay {
             if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
                 // Left mouse button is down
                 if (!dragging_) {
-                    // Not already dragging: check if we should start a drag
-                    GetCursorPos(&dragStartPos_);  // capture initial cursor pos (screen coordinates)
-                    // Capture window's position at drag start
-                    glfwGetWindowPos(window_.getGLFWwindow(), &windowStartX_, &windowStartY_);
-                    // Check if the initial click was in the title bar region (top 30px) and not on a UI widget
-                    HWND hwnd = glfwGetWin32Window(window_.getGLFWwindow());
-                    POINT clientPos = dragStartPos_;
-                    ScreenToClient(hwnd, &clientPos);
-                    if (clientPos.y < 30 && !ImGui::IsAnyItemHovered()) {
-                        dragging_ = true;
-                        spdlog::debug("Started dragging the overlay window.");
+                    POINT cursorPos;
+                    GetCursorPos(&cursorPos);
+                    int wx, wy;
+                    glfwGetWindowPos(window_.getGLFWwindow(), &wx, &wy);
+                    int ww = window_.getWidth();
+                    int wh = window_.getHeight();
+                    // Vérifier que le clic est dans la fenêtre
+                    if (cursorPos.x >= wx && cursorPos.x < wx + ww &&
+                        cursorPos.y >= wy && cursorPos.y < wy + wh) {
+                        // Convertir en coordonnées client pour vérifier la zone de la barre de titre
+                        POINT clientPos = cursorPos;
+                        HWND hwnd = glfwGetWin32Window(window_.getGLFWwindow());
+                        ScreenToClient(hwnd, &clientPos);
+                        if (clientPos.y < 30 && !ImGui::IsAnyItemHovered()) {
+                            dragging_ = true;
+                            dragStartPos_ = cursorPos;
+                            windowStartX_ = wx;
+                            windowStartY_ = wy;
+                            spdlog::debug("Started dragging the overlay window.");
+                        }
                     }
                 } else {
                     // Already dragging: update window position as cursor moves
@@ -117,6 +126,13 @@ namespace overlay {
             ImGui::Separator();
             ImGui::Text("Ready to analyze server");
             ImGui::Text("Press + to start the scan");
+
+            int cheaterCount = cheaterManager_ ? cheaterManager_->getCount() : 0;
+            if (cheaterCount > 0) {
+                ImGui::TextColored(ImVec4(1, 0, 0, 1), "Detected cheaters: %d", cheaterCount);
+            } else {
+                ImGui::Text("No cheaters detected.");
+            }
         }
         ImGui::End();
     }
