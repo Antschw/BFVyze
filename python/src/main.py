@@ -28,12 +28,14 @@ def main():
             bmp_buffer = receiver.receive_image()
             if not bmp_buffer:
                 logging.warning("Received an empty image. Skipping...")
+                sender.send_json({"error": "Received an empty image."})
                 continue
 
             # Extraction de l'ID serveur via OCR
             server_short_id = ocr_processor.process_image(bmp_buffer)
             if not server_short_id or server_short_id == "No number found":
                 logging.error("Failed to extract server short ID from OCR.")
+                sender.send_json({"error": "Failed to extract server short ID from OCR."})
                 continue
 
             logging.info(f"Extracted server short ID: {server_short_id}")
@@ -41,13 +43,15 @@ def main():
             # Récupération de l'ID complet via GameTools API
             game_id = resolver.get_game_id(server_short_id)
             if not game_id:
-                logging.error("Failed to retrieve game ID from API.")
+                logging.error("Failed to retrieve game ID from Gametools API.")
+                sender.send_json({"error": "to retrieve game ID from Gametools API."})
                 continue
 
             # Récupération du nombre de cheaters via BFVHackers API
             cheater_count = fetcher.get_cheater_count(game_id)
             if cheater_count is None:
-                logging.error("Failed to retrieve cheater count from API.")
+                logging.error("Failed to retrieve cheater count from BFVHackers API.")
+                sender.send_json({"error": "to retrieve cheater count from BFVHackers API."})
                 continue
 
             logging.info(f"Server {server_short_id} ({game_id}): {cheater_count} cheaters detected.")
