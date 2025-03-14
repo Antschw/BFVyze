@@ -90,7 +90,7 @@ add_custom_command(TARGET ExtractPython POST_BUILD
 
 # Installer pip via get-pip.py
 add_custom_command(TARGET ExtractPython POST_BUILD
-        COMMAND ${PYTHON_EMBED_DIR}/python.exe ${PYTHON_EMBED_DIR}/get-pip.py
+        COMMAND ${PYTHON_EMBED_DIR}/python.exe ${PYTHON_EMBED_DIR}/get-pip.py --no-warn-script-location
         COMMENT "Installation de pip via get-pip.py"
 )
 
