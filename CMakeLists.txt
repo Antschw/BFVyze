@@ -47,6 +47,7 @@ ExternalProject_Add(PythonEmbed
         URL ${PYTHON_EMBED_URL}
         URL_HASH ${PYTHON_EMBED_HASH}
         DOWNLOAD_DIR ${CMAKE_BINARY_DIR}/downloads
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
