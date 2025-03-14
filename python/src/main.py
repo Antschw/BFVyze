@@ -44,34 +44,39 @@ def main():
             if receiver.socket in socks:
                 bmp_buffer = receiver.receive_image()
                 if not bmp_buffer:
-                    logging.warning("Received an empty image. Skipping...")
-                    sender.send_json({"error": "Received an empty image."})
+                    error_msg = "Received an empty image."
+                    logging.warning(error_msg)
+                    sender.send_json({"ocr_result": "", "error": error_msg})
                     continue
 
                 # Traitement de l'image
                 server_short_id = ocr_processor.process_image(bmp_buffer)
                 if not server_short_id or server_short_id == "No number found":
-                    logging.error("Failed to extract server short ID from OCR.")
-                    sender.send_json({"error": "Failed to extract server short ID from OCR."})
+                    error_msg = "Failed to extract server short ID from OCR."
+                    logging.error(error_msg)
+                    sender.send_json({"ocr_result": server_short_id, "error": error_msg})
                     continue
 
                 logging.info("Extracted server short ID: {}".format(server_short_id))
 
                 game_id = resolver.get_game_id(server_short_id)
                 if not game_id:
-                    logging.error("Failed to retrieve game ID from Gametools API.")
-                    sender.send_json({"error": "to retrieve game ID from Gametools API."})
+                    error_msg = "Failed to retrieve game ID from Gametools API."
+                    logging.error(error_msg)
+                    sender.send_json({"ocr_result": server_short_id, "error": error_msg})
                     continue
 
                 cheater_count = fetcher.get_cheater_count(game_id)
                 if cheater_count is None:
-                    logging.error("Failed to retrieve cheater count from BFVHackers API.")
-                    sender.send_json({"error": "to retrieve cheater count from BFVHackers API."})
+                    error_msg = "Failed to retrieve cheater count from BFVHackers API."
+                    logging.error(error_msg)
+                    sender.send_json({"ocr_result": server_short_id, "error": error_msg})
                     continue
 
                 logging.info("Server {} ({}): {} cheaters detected.".format(server_short_id, game_id, cheater_count))
-                sender.send_json({"cheater_count": cheater_count})
-                logging.info("Sent cheater count to overlay.")
+                # Envoyer à la fois le nombre de cheaters et le résultat OCR
+                sender.send_json({"cheater_count": cheater_count, "ocr_result": server_short_id})
+                logging.info("Sent cheater count and OCR result to overlay.")
 
     except KeyboardInterrupt:
         logging.info("KeyboardInterrupt received. Shutting down backend...")

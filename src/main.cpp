@@ -8,7 +8,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <cstdlib>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -23,7 +22,6 @@
 #include "core/Constants.h"
 #include "global/GlobalState.h"
 
-
 #include "ipc/PythonBackendController.h"
 
 std::atomic g_waitingForResponse{false};
@@ -35,14 +33,14 @@ std::atomic g_waitingForResponse{false};
 void captureAndSendScreenshot(ipc::IPCManager &ipcManager) {
     spdlog::info("Hotkey pressed: capturing screenshot...");
     g_waitingForResponse.store(true);
-    auto hBitmap = screenshot::ScreenshotCapturer::captureScreen();
+    const auto hBitmap = screenshot::ScreenshotCapturer::captureScreen();
     if (!hBitmap) {
         spdlog::error("Screen capture failed.");
         return;
     }
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-    if (ipcManager.sendBlackAndWhiteImage(&*hBitmap, screenWidth, screenHeight)) {
+    const int screenWidth  = GetSystemMetrics(SM_CXSCREEN);
+    if (const int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+        ipcManager.sendBlackAndWhiteImage(&*hBitmap, screenWidth, screenHeight)) {
         spdlog::info("Screenshot sent successfully.");
     } else {
         spdlog::error("Screenshot sending failed.");
@@ -52,71 +50,82 @@ void captureAndSendScreenshot(ipc::IPCManager &ipcManager) {
 
 /**
  * @brief Fonction qui exécute l'écoute ZeroMQ pour le nombre de cheaters.
- * @param manager Pointeur partagé vers le gestionnaire de cheater count.
+ * @param cheaterManager Pointeur partagé vers le gestionnaire de cheater count.
  * @param running Référence à la variable de contrôle de l'exécution.
  */
-void runCheaterListener(std::shared_ptr<core::CheaterCountManager> manager,
-                        std::atomic<bool>& running)
-{
+void runCheaterListener(const std::shared_ptr<core::CheaterCountManager> &cheaterManager,
+                        const std::atomic<bool>                          &running) {
     zmq::context_t context(1);
-    zmq::socket_t subscriber(context, zmq::socket_type::pull);
+    zmq::socket_t  subscriber(context, zmq::socket_type::pull);
 
-    // On peut mettre un petit timeout pour pas bloquer trop longtemps
-    int shortTimeoutMs = 200;
-    subscriber.setsockopt(ZMQ_RCVTIMEO, &shortTimeoutMs, sizeof(shortTimeoutMs));
+    // Set a longer timeout (e.g., 5000 milliseconds)
+    int timeoutMs = 50000;
+    subscriber.set(zmq::sockopt::rcvtimeo, timeoutMs);
     subscriber.connect("tcp://localhost:5556");
-    spdlog::info("ZeroMQ listener started on port 5556.");
+    spdlog::info("ZeroMQ listener started on port 5556 with timeout {} ms.", timeoutMs);
 
     while (running.load()) {
         zmq::message_t message;
+        // If no message is received within the timeout, set an error and continue.
         if (!subscriber.recv(message, zmq::recv_flags::none)) {
-            // On n'a rien reçu dans le délai shortTimeoutMs
-            // => check si on attendait une réponse
             if (g_waitingForResponse.load()) {
-                // On peut incrémenter un compteur de "combien de fois on n'a rien reçu"
-                // et au bout d'un certain temps, on loggue l'erreur
-                static int noResponseCounter = 0;
-                noResponseCounter++;
-                if (noResponseCounter > 10) { // par ex. 10 x 200ms = 2 secondes
-                    spdlog::warn("Timeout waiting for message from Python backend (2s).");
-                    g_waitingForResponse.store(false);
-                    noResponseCounter = 0;
+                spdlog::error("Timeout waiting for message from Python backend.");
+                if (cheaterManager) {
+                    cheaterManager->setError("Timeout waiting for backend response.");
                 }
+                g_waitingForResponse.store(false);
             }
             continue;
         }
-        // On a reçu quelque chose
+        // Process the received message…
         g_waitingForResponse.store(false);
         try {
             auto json_msg = nlohmann::json::parse(message.to_string());
+
+            // Stocker l'OCR s'il existe
+            if (cheaterManager && json_msg.contains("ocr_result")) {
+                cheaterManager->setOCR(json_msg["ocr_result"].get<std::string>());
+            }
+
+            // Stocker l'erreur s'il y en a une
             if (json_msg.contains("error")) {
-                std::string err = json_msg["error"].get<std::string>();
-                manager->setError(err);
+                auto err = json_msg["error"].get<std::string>();
+                if (cheaterManager) {
+                    cheaterManager->setError(err);
+                }
                 spdlog::error("Received error from Python: {}", err);
-            } else if (json_msg.contains("cheater_count")) {
+            }
+
+            // Stocker le cheater_count s'il y en a un
+            if (json_msg.contains("cheater_count")) {
                 int count = json_msg["cheater_count"].get<int>();
-                manager->setCount(count);
+                if (cheaterManager) {
+                    cheaterManager->setCount(count);
+                }
                 spdlog::info("Received cheater count: {}", count);
             }
-        } catch (const std::exception& e) {
-            manager->setError(e.what());
-            spdlog::error("Error parsing cheater count JSON: {}", e.what());
+        } catch (const std::exception &e) {
+            if (cheaterManager) {
+                cheaterManager->setError(e.what());
+            }
+            spdlog::error("Error parsing JSON: {}", e.what());
         }
     }
 }
-
 
 /**
  * @brief Fonction qui exécute le pipeline de capture d'écran dans un thread.
  * @param running Référence à la variable de contrôle de l'exécution.
  */
-void runScreenshotPipeline(std::atomic<bool>& running) {
+void runScreenshotPipeline(const std::atomic<bool> &running) {
     const std::string zmqEndpoint = "tcp://localhost:5555";
-    ipc::IPCManager ipcManager(zmqEndpoint);
+    ipc::IPCManager   ipcManager(zmqEndpoint);
     // On utilise la touche VK_ADD pour déclencher la capture d'écran
     input::HotkeyManager hotkeyManager(VK_ADD);
-    hotkeyManager.start([&ipcManager]() {
+    hotkeyManager.start([&ipcManager] {
         GlobalState::pipelineActive.store(true);
+        GlobalState::scanInitiated.store(true); // Indicate that a scan has been started
+        GlobalState::errorMessage = "";         // Reset error message
         captureAndSendScreenshot(ipcManager);
         GlobalState::pipelineActive.store(false);
     });
@@ -143,7 +152,7 @@ void runApplication() {
     auto cheaterManager = std::make_shared<core::CheaterCountManager>();
 
     // Variable atomique de contrôle pour signaler l'arrêt aux threads
-    std::atomic<bool> appRunning{true};
+    std::atomic appRunning{true};
 
     // Lancer le thread pour l'écoute ZeroMQ
     std::thread zmqListener(runCheaterListener, cheaterManager, std::ref(appRunning));

@@ -20,4 +20,12 @@ std::string CheaterCountManager::getError() const {
     return errorMessage_;
 }
 
+void CheaterCountManager::setOCR(const std::string &ocr) {
+    ocrResult_ = ocr;
+}
+
+std::string CheaterCountManager::getOCR() const {
+    return ocrResult_;
+}
+
 } // namespace core

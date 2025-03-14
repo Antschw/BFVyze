@@ -3,9 +3,12 @@
 #include <string>
 
 namespace GlobalState {
-    // Indique si le pipeline est en cours d'exécution.
+    // Indicates if the pipeline is currently running.
     inline std::atomic<bool> pipelineActive{false};
 
-    // Autres états globaux éventuels, par exemple un message d'erreur.
-    inline std::string errorMessage = "";
+    // Indicates if a scan has been initiated (i.e. the user pressed the scan hotkey).
+    inline std::atomic<bool> scanInitiated{false};
+
+    // Global error message, if any.
+    inline std::string errorMessage;
 }
