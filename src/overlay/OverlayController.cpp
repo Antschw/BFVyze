@@ -76,74 +76,82 @@ namespace overlay {
     }
 
     void OverlayController::renderUI() {
-        // Create a full-screen ImGui window to cover the entire overlay (no default title bar)
+        // Update window title with OCR result if available.
+        // Suppose that cheaterManager_ now expose une méthode getOCR() qui retourne une std::string (vide si non défini).
+        std::string ocrResult = (cheaterManager_) ? cheaterManager_->getOCR() : "";
+        if (!ocrResult.empty()) {
+            std::string newTitle = "Scan of Battlefield server #" + ocrResult;
+            glfwSetWindowTitle(window_.getGLFWwindow(), newTitle.c_str());
+        }
+
+        // Determine if a scan has been initiated.
+        // Nous utilisons ici une variable atomique globale (définie dans GlobalState.h par exemple) :
+        //   std::atomic<bool> scanInitiated{false};
+        bool scanInitiated = GlobalState::scanInitiated.load();
+
+        // Create a full-screen ImGui window covering the entire overlay.
         ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                                        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
                                        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2((float)window_.getWidth(), (float)window_.getHeight()));
+        ImGui::SetNextWindowSize(ImVec2(static_cast<float>(window_.getWidth()), static_cast<float>(window_.getHeight())));
         ImGui::Begin("OverlayMainWindow", nullptr, windowFlags);
         {
-            // Draw custom title bar as a child region at the top
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));  // transparent background
+            // Draw custom title bar as a child region at the top.
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0)); // transparent background
             ImGui::BeginChild("TitleBarRegion", ImVec2(0, 30), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
             {
                 ImGui::TextUnformatted("BFVyze Overlay");
                 if (GlobalState::pipelineActive.load()) {
-                    ImGui::TextColored(ImVec4(0,1,0,1), "Pipeline running");
+                    ImGui::TextColored(ImVec4(0, 1, 0, 1), "Pipeline running");
                 }
-                // Place control buttons on the same line, aligned to the right
+                // Place control buttons aligned to the right.
                 ImGui::SameLine();
                 float buttonWidth = 60.0f;
                 float spacing = ImGui::GetStyle().ItemSpacing.x;
                 float totalButtonArea = 3 * buttonWidth + 3 * spacing;
-
-                // Calculate remaining space to push buttons to the right
                 float spacerWidth = ImGui::GetContentRegionAvail().x - totalButtonArea;
                 if (spacerWidth < 0) spacerWidth = 0;
-                ImGui::Dummy(ImVec2(spacerWidth, 0));  // invisible spacer
+                ImGui::Dummy(ImVec2(spacerWidth, 0));
                 ImGui::SameLine();
-
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8.0f);
-
                 if (ImGui::Button("Minimize", ImVec2(buttonWidth, 0))) {
                     window_.hideWindow();
-                    visible_ = false;
                 }
-
                 ImGui::SameLine();
                 if (ImGui::Button("Config", ImVec2(buttonWidth, 0))) {
-                    spdlog::info("Configuration button pressed (no action implemented yet).");
-                    // Future: open configuration modal
+                    spdlog::info("Configuration button pressed (not implemented yet).");
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Close", ImVec2(buttonWidth, 0))) {
                     window_.closeWindow();
                 }
                 ImGui::PopStyleVar();
-
             }
             ImGui::EndChild();
             ImGui::PopStyleColor();
 
-            // Draw main content area below the title bar
             ImGui::Separator();
-            ImGui::Text("Ready to analyze server");
-            ImGui::Text("Press + to start the scan");
 
-            int cheaterCount = cheaterManager_ ? cheaterManager_->getCount() : 0;
-            if (cheaterCount == -1) {
-            } else if (cheaterCount > 0) {
-                ImGui::TextColored(ImVec4(1, 0, 0, 1), "Detected cheaters: %d", cheaterCount);
-            } else {
-                ImGui::Text("No cheaters detected.");
+            // Before any scan is initiated, show the instructions.
+            if (!scanInitiated) {
+                ImGui::Text("Ready to analyze server");
+                ImGui::Text("Press + to start the scan");
             }
-            std::string error = cheaterManager_ ? cheaterManager_->getError() : "";
-            if (!GlobalState::errorMessage.empty()) {
-                ImGui::TextColored(ImVec4(1,1,0,1), "Error: %s", GlobalState::errorMessage.c_str());
+            else {
+                // Once a scan has been initiated, display either an error message or the scan result.
+                std::string errorMsg = (cheaterManager_) ? cheaterManager_->getError() : "";
+                if (!errorMsg.empty()) {
+                    ImGui::TextColored(ImVec4(1, 1, 0, 1), "Error: %s", errorMsg.c_str());
+                }
+                else if (cheaterManager_ && cheaterManager_->getCount() > 0) {
+                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "Detected cheaters: %d", cheaterManager_->getCount());
+                }
+                // Otherwise, if no error and no cheaters, nothing is displayed.
             }
         }
         ImGui::End();
     }
+
 
 } // namespace overlay

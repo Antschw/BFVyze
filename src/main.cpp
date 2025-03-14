@@ -8,7 +8,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <cstdlib>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -52,55 +51,60 @@ void captureAndSendScreenshot(ipc::IPCManager &ipcManager) {
 
 /**
  * @brief Fonction qui exécute l'écoute ZeroMQ pour le nombre de cheaters.
+ * @param cheaterManager
  * @param manager Pointeur partagé vers le gestionnaire de cheater count.
  * @param running Référence à la variable de contrôle de l'exécution.
  */
-void runCheaterListener(std::shared_ptr<core::CheaterCountManager> manager,
-                        std::atomic<bool>& running)
+void runCheaterListener(const std::shared_ptr<core::CheaterCountManager> &cheaterManager,
+                        const std::atomic<bool>& running)
 {
     zmq::context_t context(1);
     zmq::socket_t subscriber(context, zmq::socket_type::pull);
 
-    // On peut mettre un petit timeout pour pas bloquer trop longtemps
-    int shortTimeoutMs = 200;
-    subscriber.setsockopt(ZMQ_RCVTIMEO, &shortTimeoutMs, sizeof(shortTimeoutMs));
+    // Set a longer timeout (e.g., 5000 milliseconds)
+    int timeoutMs = 5000;
+    subscriber.set(zmq::sockopt::rcvtimeo, timeoutMs);
     subscriber.connect("tcp://localhost:5556");
-    spdlog::info("ZeroMQ listener started on port 5556.");
+    spdlog::info("ZeroMQ listener started on port 5556 with timeout {} ms.", timeoutMs);
 
     while (running.load()) {
         zmq::message_t message;
+        // If no message is received within the timeout, set an error and continue.
         if (!subscriber.recv(message, zmq::recv_flags::none)) {
-            // On n'a rien reçu dans le délai shortTimeoutMs
-            // => check si on attendait une réponse
             if (g_waitingForResponse.load()) {
-                // On peut incrémenter un compteur de "combien de fois on n'a rien reçu"
-                // et au bout d'un certain temps, on loggue l'erreur
-                static int noResponseCounter = 0;
-                noResponseCounter++;
-                if (noResponseCounter > 10) { // par ex. 10 x 200ms = 2 secondes
-                    spdlog::warn("Timeout waiting for message from Python backend (2s).");
-                    g_waitingForResponse.store(false);
-                    noResponseCounter = 0;
+                spdlog::error("Timeout waiting for message from Python backend.");
+                if (cheaterManager) {
+                    cheaterManager->setError("Timeout waiting for backend response.");
                 }
+                g_waitingForResponse.store(false);
             }
             continue;
         }
-        // On a reçu quelque chose
+        // Process the received message...
         g_waitingForResponse.store(false);
         try {
             auto json_msg = nlohmann::json::parse(message.to_string());
             if (json_msg.contains("error")) {
                 std::string err = json_msg["error"].get<std::string>();
-                manager->setError(err);
+                if (cheaterManager) {
+                    cheaterManager->setError(err);
+                }
                 spdlog::error("Received error from Python: {}", err);
             } else if (json_msg.contains("cheater_count")) {
                 int count = json_msg["cheater_count"].get<int>();
-                manager->setCount(count);
+                if (cheaterManager) {
+                    cheaterManager->setCount(count);
+                }
+                if (json_msg.contains("ocr_result")) {
+                    cheaterManager->setOCR(json_msg["ocr_result"].get<std::string>());
+                }
                 spdlog::info("Received cheater count: {}", count);
             }
         } catch (const std::exception& e) {
-            manager->setError(e.what());
-            spdlog::error("Error parsing cheater count JSON: {}", e.what());
+            if (cheaterManager) {
+                cheaterManager->setError(e.what());
+            }
+            spdlog::error("Error parsing JSON: {}", e.what());
         }
     }
 }
@@ -117,6 +121,8 @@ void runScreenshotPipeline(std::atomic<bool>& running) {
     input::HotkeyManager hotkeyManager(VK_ADD);
     hotkeyManager.start([&ipcManager]() {
         GlobalState::pipelineActive.store(true);
+        GlobalState::scanInitiated.store(true); // Indicate that a scan has been started
+        GlobalState::errorMessage = "";         // Reset error message
         captureAndSendScreenshot(ipcManager);
         GlobalState::pipelineActive.store(false);
     });

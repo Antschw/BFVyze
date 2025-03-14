@@ -26,7 +26,7 @@ public:
      * @brief Récupère le nombre de cheaters.
      * @return Le nombre de cheaters.
      */
-    int getCount() const;
+    [[nodiscard]] int getCount() const;
 
     /**
      * @brief Définit un message d'erreur.
@@ -37,11 +37,25 @@ public:
      * @brief Récupère le message d'erreur.
      * @return Le message d'erreur.
      */
-    std::string getError() const;
+    [[nodiscard]] std::string getError() const;
+
+    /**
+     * @brief Set the OCR result extracted from the backend.
+     * @param ocr The OCR result (e.g. the server number as a string).
+     */
+    void setOCR(const std::string &ocr);
+
+    /**
+     * @brief Get the OCR result extracted from the backend.
+     * @return The OCR result as a std::string (empty if not set).
+     */
+    [[nodiscard]] std::string getOCR() const;
+
 
 private:
     std::atomic<int> count_;
     std::string errorMessage_;
+    std::string ocrResult_;
 };
 
 } // namespace core

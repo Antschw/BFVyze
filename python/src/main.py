@@ -41,6 +41,12 @@ def main():
                 shutdown_socket.send_string("OK")
                 break
 
+            if not socks.get(receiver.socket):
+                # Aucun message reçu dans le délai imparti : timeout
+                logging.warning("Timeout waiting for Python backend response.")
+                sender.send_json({"error": "Timeout waiting for Python backend response."})
+                continue
+
             if receiver.socket in socks:
                 bmp_buffer = receiver.receive_image()
                 if not bmp_buffer:
@@ -70,8 +76,9 @@ def main():
                     continue
 
                 logging.info("Server {} ({}): {} cheaters detected.".format(server_short_id, game_id, cheater_count))
-                sender.send_json({"cheater_count": cheater_count})
-                logging.info("Sent cheater count to overlay.")
+                # Envoyer à la fois le nombre de cheaters et le résultat OCR
+                sender.send_json({"cheater_count": cheater_count, "ocr_result": server_short_id})
+                logging.info("Sent cheater count and OCR result to overlay.")
 
     except KeyboardInterrupt:
         logging.info("KeyboardInterrupt received. Shutting down backend...")
