@@ -1,52 +1,32 @@
-#include "overlay/OverlayController.h"
-#include "input/HotkeyManager.h"
-#include "screenshot/ScreenshotCapturer.h"
-#include "ipc/IPCManager.h"
-#include "core/CheaterCountManager.h"
-#include <thread>
-#include <atomic>
-#include <cstdlib>
-#include <chrono>
-#include <spdlog/spdlog.h>
+#define WIN32_LEAN_AND_MEAN
+#ifndef WIN32_WINNT
+#define WIN32_WINNT 0x0601
+#endif
+
 #include <windows.h>
 #include <shellapi.h>
-#include <zmq.hpp>
-#include <string>
+
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+#include <string>
+#include <thread>
+#include <zmq.hpp>
+#include "core/CheaterCountManager.h"
+#include "input/HotkeyManager.h"
+#include "ipc/IPCManager.h"
+#include "overlay/OverlayController.h"
+#include "screenshot/ScreenshotCapturer.h"
+
+#include "core/Constants.h"
 #include "global/GlobalState.h"
-#include <filesystem>
-
-std::atomic<bool> g_waitingForResponse{false};
 
 
-/**
- * @brief Lance le serveur backend Python dans une nouvelle fenêtre.
- */
-void launchPythonServer() {
-    std::string pythonExe = "python-3.13.2-embed-amd64\\pythonw.exe";
-    std::string script    = "python-3.13.2-embed-amd64\\scripts\\main.py";
+#include "ipc/PythonBackendController.h"
 
-    // Vérif: est-ce que pythonExe existe ?
-    if (!std::filesystem::exists(pythonExe)) {
-        spdlog::error("Python executable not found at: {}", pythonExe);
-        return;
-    }
-    if (!std::filesystem::exists(script)) {
-        spdlog::error("Python script not found at: {}", script);
-        return;
-    }
-
-    spdlog::info("Launching Python backend: {} {}", pythonExe, script);
-    HINSTANCE hRes = ShellExecuteA(NULL, "open", pythonExe.c_str(), script.c_str(), NULL, SW_HIDE);
-    intptr_t code = reinterpret_cast<intptr_t>(hRes);
-    if (code <= 32) {
-        spdlog::error("ShellExecute failed with code {}", code);
-    } else {
-        spdlog::info("ShellExecute success, Python backend should be starting.");
-    }
-}
-
-
+std::atomic g_waitingForResponse{false};
 
 /**
  * @brief Capture et envoie une capture d'écran via IPC.
@@ -155,8 +135,9 @@ void runScreenshotPipeline(std::atomic<bool>& running) {
  * @brief Fonction principale de l'application qui lance les threads et l'overlay.
  */
 void runApplication() {
-    // Lancer le serveur Python en début d'exécution
-    launchPythonServer();
+    // Create the Python backend controller with appropriate paths.
+    ipc::PythonBackendController backendController(PYTHON_EXECUTABLE_PATH, PYTHON_SCRIPT_PATH);
+    backendController.launchBackend();
 
     // Créer le gestionnaire partagé pour le nombre de cheaters
     auto cheaterManager = std::make_shared<core::CheaterCountManager>();
@@ -181,6 +162,8 @@ void runApplication() {
         screenshotThread.join();
     if (zmqListener.joinable())
         zmqListener.join();
+
+    backendController.shutdownBackend();
 }
 
 int main() {

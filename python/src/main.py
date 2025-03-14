@@ -7,65 +7,78 @@ from api.cheater_count_fetcher import CheaterCountFetcher
 
 def main():
     logging.basicConfig(level=logging.INFO)
-
-    # Socket ZeroMQ pour envoyer le nombre de cheaters à C++
     context = zmq.Context()
-    sender = context.socket(zmq.PUSH)
-    sender.bind("tcp://*:5556")  # Port différent de celui de réception
 
-    # Bind le socket PULL pour écouter les captures d’écran sur le port 5555
+    # Socket pour envoyer la réponse vers C++
+    sender = context.socket(zmq.PUSH)
+    sender.bind("tcp://*:5556")
+
+    # Socket pour recevoir les captures d’écran
     receiver = ScreenshotReceiver("tcp://*:5555")
+
+    # Socket pour recevoir la commande d'arrêt
+    shutdown_socket = context.socket(zmq.REP)
+    shutdown_socket.bind("tcp://*:5557")
 
     # Initialisation des modules
     ocr_processor = OCRProcessor()
     resolver = ServerIdResolver()
     fetcher = CheaterCountFetcher()
 
-    logging.info("Backend is listening for screenshots... (Press Ctrl+C to exit)")
+    logging.info("Backend is listening...")
+
+    # Création d'un poller pour écouter à la fois le receiver et le shutdown
+    poller = zmq.Poller()
+    poller.register(receiver.socket, zmq.POLLIN)
+    poller.register(shutdown_socket, zmq.POLLIN)
 
     try:
         while True:
-            bmp_buffer = receiver.receive_image()
-            if not bmp_buffer:
-                logging.warning("Received an empty image. Skipping...")
-                sender.send_json({"error": "Received an empty image."})
-                continue
+            socks = dict(poller.poll(1000))  # timeout 1 seconde
+            if shutdown_socket in socks:
+                msg = shutdown_socket.recv_string()
+                logging.info("Shutdown command received: {}".format(msg))
+                shutdown_socket.send_string("OK")
+                break
 
-            # Extraction de l'ID serveur via OCR
-            server_short_id = ocr_processor.process_image(bmp_buffer)
-            if not server_short_id or server_short_id == "No number found":
-                logging.error("Failed to extract server short ID from OCR.")
-                sender.send_json({"error": "Failed to extract server short ID from OCR."})
-                continue
+            if receiver.socket in socks:
+                bmp_buffer = receiver.receive_image()
+                if not bmp_buffer:
+                    logging.warning("Received an empty image. Skipping...")
+                    sender.send_json({"error": "Received an empty image."})
+                    continue
 
-            logging.info(f"Extracted server short ID: {server_short_id}")
+                # Traitement de l'image
+                server_short_id = ocr_processor.process_image(bmp_buffer)
+                if not server_short_id or server_short_id == "No number found":
+                    logging.error("Failed to extract server short ID from OCR.")
+                    sender.send_json({"error": "Failed to extract server short ID from OCR."})
+                    continue
 
-            # Récupération de l'ID complet via GameTools API
-            game_id = resolver.get_game_id(server_short_id)
-            if not game_id:
-                logging.error("Failed to retrieve game ID from Gametools API.")
-                sender.send_json({"error": "to retrieve game ID from Gametools API."})
-                continue
+                logging.info("Extracted server short ID: {}".format(server_short_id))
 
-            # Récupération du nombre de cheaters via BFVHackers API
-            cheater_count = fetcher.get_cheater_count(game_id)
-            if cheater_count is None:
-                logging.error("Failed to retrieve cheater count from BFVHackers API.")
-                sender.send_json({"error": "to retrieve cheater count from BFVHackers API."})
-                continue
+                game_id = resolver.get_game_id(server_short_id)
+                if not game_id:
+                    logging.error("Failed to retrieve game ID from Gametools API.")
+                    sender.send_json({"error": "to retrieve game ID from Gametools API."})
+                    continue
 
-            logging.info(f"Server {server_short_id} ({game_id}): {cheater_count} cheaters detected.")
+                cheater_count = fetcher.get_cheater_count(game_id)
+                if cheater_count is None:
+                    logging.error("Failed to retrieve cheater count from BFVHackers API.")
+                    sender.send_json({"error": "to retrieve cheater count from BFVHackers API."})
+                    continue
 
-            # Envoi du nombre de cheaters via ZeroMQ
-            sender.send_json({"cheater_count": cheater_count})
-            logging.info("Sent cheater count to overlay.")
+                logging.info("Server {} ({}): {} cheaters detected.".format(server_short_id, game_id, cheater_count))
+                sender.send_json({"cheater_count": cheater_count})
+                logging.info("Sent cheater count to overlay.")
 
     except KeyboardInterrupt:
         logging.info("KeyboardInterrupt received. Shutting down backend...")
-
     finally:
         receiver.close()
         sender.close()
+        shutdown_socket.close()
         context.term()
 
 if __name__ == "__main__":
