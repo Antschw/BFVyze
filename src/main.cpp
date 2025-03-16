@@ -82,27 +82,27 @@ void runCheaterListener(const std::shared_ptr<core::CheaterCountManager> &cheate
         try {
             auto json_msg = nlohmann::json::parse(message.to_string());
 
-            // Stocker l'OCR s'il existe
+            // Always update OCR if available.
             if (cheaterManager && json_msg.contains("ocr_result")) {
                 cheaterManager->setOCR(json_msg["ocr_result"].get<std::string>());
             }
 
-            // Stocker l'erreur s'il y en a une
-            if (json_msg.contains("error")) {
+            // If a successful scan is detected, update count and clear any previous error.
+            if (json_msg.contains("cheater_count")) {
+                int count = json_msg["cheater_count"].get<int>();
+                if (cheaterManager) {
+                    cheaterManager->setCount(count);
+                    cheaterManager->setError(""); // clear error on success
+                }
+                spdlog::info("Received cheater count: {}", count);
+            }
+            // Else, if an error is provided, store it.
+            else if (json_msg.contains("error")) {
                 auto err = json_msg["error"].get<std::string>();
                 if (cheaterManager) {
                     cheaterManager->setError(err);
                 }
                 spdlog::error("Received error from Python: {}", err);
-            }
-
-            // Stocker le cheater_count s'il y en a un
-            if (json_msg.contains("cheater_count")) {
-                int count = json_msg["cheater_count"].get<int>();
-                if (cheaterManager) {
-                    cheaterManager->setCount(count);
-                }
-                spdlog::info("Received cheater count: {}", count);
             }
         } catch (const std::exception &e) {
             if (cheaterManager) {

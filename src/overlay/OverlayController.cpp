@@ -20,9 +20,17 @@ void OverlayController::run() {
 
     // Enter the main render loop
     while (!window_.shouldClose()) {
-        OverlayWindow::pollEvents();
+        // Process events
+        glfwPollEvents();
 
-        // Handle window dragging (click and drag on the title bar)
+        // Force update of the window content
+        HWND hWnd = glfwGetWin32Window(window_.getGLFWwindow());
+        if (hWnd) {
+            InvalidateRect(hWnd, nullptr, TRUE);
+            UpdateWindow(hWnd);
+        }
+
+        // Handle window dragging (unchanged)
         if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
             if (!dragging_) {
                 POINT cursorPos;
@@ -69,6 +77,9 @@ void OverlayController::run() {
         window_.beginFrame();
         renderUI();
         window_.endFrame();
+
+        // Sleep for about 16 ms to force ~60 fps refresh
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     // The loop has exited, meaning the window is closing
@@ -142,11 +153,17 @@ void OverlayController::renderUI() const {
             const std::string errorMsg = cheaterManager_ ? cheaterManager_->getError() : "";
             if (!errorMsg.empty()) {
                 ImGui::TextColored(ImVec4(1, 1, 0, 1), "Error: %s", errorMsg.c_str());
-            }
+            } else {
+                // Display cheater count if available (>= 0)
+                // If count is 0, display in green; if > 0, display in red.
 
-            // Show cheater count if > 0
-            if (cheaterManager_ && cheaterManager_->getCount() > 0) {
-                ImGui::TextColored(ImVec4(1, 0, 0, 1), "Detected cheaters: %d", cheaterManager_->getCount());
+                if (cheaterManager_ && cheaterManager_->getCount() >= 0) {
+                    if (const int count = cheaterManager_->getCount(); count == 0) {
+                        ImGui::TextColored(ImVec4(0, 1, 0, 1), "Detected cheaters: %d", count);
+                    } else {
+                        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Detected cheaters: %d", count);
+                    }
+                }
             }
         }
     }
