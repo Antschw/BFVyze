@@ -6,6 +6,7 @@
 #include "screenshot/ScreenshotSaver.h"
 
 namespace screenshot {
+
 bool ScreenshotOrchestrator::captureAndSaveScreenshot(const std::string &filename) {
     spdlog::info("Starting full screenshot process...");
 
@@ -14,7 +15,6 @@ bool ScreenshotOrchestrator::captureAndSaveScreenshot(const std::string &filenam
         return false;
     }
 
-    // Capture the screen
     spdlog::info("Filename received: {}", filename);
     const auto hBitmap = ScreenshotCapturer::captureScreen();
     if (!hBitmap) {
@@ -25,23 +25,20 @@ bool ScreenshotOrchestrator::captureAndSaveScreenshot(const std::string &filenam
     const int screenWidth  = GetSystemMetrics(SM_CXSCREEN);
     const int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
-    // Convert to grayscale
+    // Convert to grayscale (the conversion now crops the image first)
     ScreenshotProcessor::BITMAPINFO256 bmpInfo256 = {};
-    const std::vector<BYTE>            grayData =
-            ScreenshotProcessor::convertToGrayscale(&*hBitmap, screenWidth, screenHeight, bmpInfo256);
+    const std::vector<BYTE> grayData = ScreenshotProcessor::convertToGrayscale(&*hBitmap, screenWidth, screenHeight, bmpInfo256);
 
     if (grayData.empty()) {
         spdlog::error("Grayscale conversion failed.");
         return false;
     }
 
-    // Save the file
     if (!ScreenshotSaver::saveBitmapToFile(filename, bmpInfo256, grayData)) {
         spdlog::error("Saving screenshot to file failed.");
         return false;
     }
 
-    // Convert relative path to absolute path
     const std::filesystem::path absolutePath = std::filesystem::absolute(filename);
     spdlog::info("Screenshot successfully saved to {}", absolutePath.string());
 
