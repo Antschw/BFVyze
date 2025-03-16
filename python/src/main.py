@@ -1,7 +1,7 @@
 import logging
 import zmq
 from zmq_comm.screenshot_receiver import ScreenshotReceiver
-from ocr.ocr_processor import OCRProcessor
+from ocr.ocr_processor import OCRProcessor, process_image
 from api.server_id_resolver import ServerIdResolver
 from api.cheater_count_fetcher import CheaterCountFetcher
 
@@ -21,7 +21,7 @@ def main():
     shutdown_socket.bind("tcp://*:5557")
 
     # Initialisation des modules
-    ocr_processor = OCRProcessor()
+    OCRProcessor()
     resolver = ServerIdResolver()
     fetcher = CheaterCountFetcher()
 
@@ -50,7 +50,7 @@ def main():
                     continue
 
                 # Traitement de l'image
-                server_short_id = ocr_processor.process_image(bmp_buffer)
+                server_short_id = process_image(bmp_buffer)
                 if not server_short_id or server_short_id == "No number found":
                     error_msg = "Failed to extract server short ID from OCR."
                     logging.error(error_msg)

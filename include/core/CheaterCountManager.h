@@ -4,58 +4,55 @@
 #include <atomic>
 #include <string>
 
-/**
- * @brief Classe qui gère le nombre de cheaters détectés.
- */
 namespace core {
 
 class CheaterCountManager {
 public:
     /**
-     * @brief Constructeur initialisant le compteur à -1 (aucune analyse effectuée).
+     * @brief Constructor that initializes the counter to -1 (no analysis performed).
      */
     CheaterCountManager();
 
     /**
-     * @brief Met à jour le nombre de cheaters.
-     * @param count Nouveau nombre de cheaters.
+     * @brief Updates the number of detected cheaters.
+     * @param count The new cheater count.
      */
     void setCount(int count);
 
     /**
-     * @brief Récupère le nombre de cheaters.
-     * @return Le nombre de cheaters.
+     * @brief Retrieves the number of detected cheaters.
+     * @return The current cheater count.
      */
     [[nodiscard]] int getCount() const;
 
     /**
-     * @brief Définit un message d'erreur.
+     * @brief Sets an error message.
+     * @param msg The error message.
      */
     void setError(const std::string &msg);
 
     /**
-     * @brief Récupère le message d'erreur.
-     * @return Le message d'erreur.
+     * @brief Retrieves the error message.
+     * @return The current error message.
      */
     [[nodiscard]] std::string getError() const;
 
     /**
-     * @brief Set the OCR result extracted from the backend.
+     * @brief Sets the OCR result extracted from the backend.
      * @param ocr The OCR result (e.g. the server number as a string).
      */
     void setOCR(const std::string &ocr);
 
     /**
-     * @brief Get the OCR result extracted from the backend.
-     * @return The OCR result as a std::string (empty if not set).
+     * @brief Retrieves the OCR result extracted from the backend.
+     * @return The OCR result as a string (empty if not set).
      */
     [[nodiscard]] std::string getOCR() const;
 
-
 private:
     std::atomic<int> count_;
-    std::string errorMessage_;
-    std::string ocrResult_;
+    std::string      errorMessage_;
+    std::string      ocrResult_;
 };
 
 } // namespace core
